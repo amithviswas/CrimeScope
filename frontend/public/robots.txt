@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /alerts
+Disallow: /analytics
+Disallow: /api/
+
+# Sitemap — update with your Railway/Vercel deployment URL
+Sitemap: http://localhost:3000/sitemap.xml

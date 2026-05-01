@@ -1,0 +1,1 @@
+"""CrimeScope core package."""
