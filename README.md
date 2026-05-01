@@ -163,36 +163,27 @@ Copy `.env.example` to `.env`. Minimum required to run locally:
 | `JWT_SECRET_KEY` | JWT signing key | Generate same as SECRET_KEY |
 | `GOOGLE_CLIENT_ID` | Google OAuth | [Google Cloud Console](https://console.cloud.google.com/) |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth | Same as above |
-| `STRIPE_SECRET_KEY` | Stripe (`sk_test_...`) | [Stripe Dashboard](https://dashboard.stripe.com/) |
-| `STRIPE_WEBHOOK_SECRET` | Stripe CLI secret | `stripe listen --forward-to localhost:8000/api/v1/payments/webhook` |
-| `RESEND_API_KEY` | Email sending | [Resend](https://resend.com) |
-| `NEXT_PUBLIC_MAPBOX_TOKEN` | Map tiles | [Mapbox](https://account.mapbox.com/) |
-
-See [`.env.example`](.env.example) for the complete list with descriptions.
-
----
-
-## 🔐 Google OAuth Setup
+| `## 🔐 Google OAuth Setup
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services → Credentials**
 2. Create **OAuth 2.0 Client ID** (Web application)
 3. Add **Authorized Redirect URIs**:
    ```
    http://localhost:3000/api/auth/callback/google
-   https://<your-railway-frontend>.up.railway.app/api/auth/callback/google
+   https://<your-vercel-app>.vercel.app/api/auth/callback/google
    ```
-4. Copy **Client ID** and **Client Secret** to `.env`
+4. Copy **Client ID** and **Client Secret** to your deployment env vars
 
 ---
 
-## 💳 Stripe Setup (Local)
+## 💳 Stripe Setup (Local Webhooks)
 
 ```bash
 # Install Stripe CLI: https://stripe.com/docs/stripe-cli
 
 # Terminal 1 — Forward webhooks to local backend
 stripe listen --forward-to localhost:8000/api/v1/payments/webhook
-# Copy the webhook signing secret → STRIPE_WEBHOOK_SECRET in .env
+# Copy the webhook signing secret shown → STRIPE_WEBHOOK_SECRET in .env
 
 # Terminal 2 — Start the app
 docker compose up -d
@@ -200,50 +191,127 @@ docker compose up -d
 
 ---
 
-## 🚂 Railway Deployment
+## ☁️ Free Deployment Stack (100% Free, No Credit Card)
 
-### Step 1 — Create Railway Account
-1. Sign up at [railway.app](https://railway.app) with GitHub
-2. **New Project → Deploy from GitHub repo → Select `crimescope`**
+This app is deployed using **4 completely free services**:
 
-### Step 2 — Add 4 Services
+| Layer | Platform | Free Tier |
+|-------|----------|-----------|
+| 🎨 **Frontend** | [Vercel](https://vercel.com) | Unlimited deployments, free forever |
+| ⚙️ **Backend** | [Render](https://render.com) | 750 hrs/month free web service |
+| 🗄️ **PostgreSQL** | [Neon](https://neon.tech) | 0.5 GB free serverless Postgres |
+| ⚡ **Redis** | [Upstash](https://upstash.com) | 10,000 req/day free serverless Redis |
 
-| Service | How to add |
-|---------|-----------|
-| **PostgreSQL** | + New → Database → PostgreSQL |
-| **Redis** | + New → Database → Redis |
-| **Backend** | + New → GitHub Repo → Root dir: `backend` |
-| **Frontend** | + New → GitHub Repo → Root dir: `frontend` |
-
-### Step 3 — Set Environment Variables
-
-In each service's **Variables** tab, add the values from your `.env`:
-
-**Backend service** — all backend vars (`DATABASE_URL`, `REDIS_URL`, `SECRET_KEY`, `GOOGLE_*`, `STRIPE_*`, `RESEND_*`, etc.)
-
-**Frontend service** — all `NEXT_PUBLIC_*` vars, plus:
-```bash
-NEXT_PUBLIC_API_URL=https://<your-backend>.up.railway.app
-NEXT_PUBLIC_APP_URL=https://<your-frontend>.up.railway.app
-NEXTAUTH_URL=https://<your-frontend>.up.railway.app
-NEXTAUTH_SECRET=<generate-random-string>
-```
-
-> **Tip:** Railway shows `DATABASE_URL` and `REDIS_URL` automatically after adding the database services — just copy them to the backend variables.
-
-### Step 4 — Generate Domains
-- Backend service → Settings → **Generate Domain** → copy the URL
-- Frontend service → Settings → **Generate Domain** → copy the URL
-
-### Step 5 — Update Google Console & Stripe
-After getting Railway URLs:
-- Add the frontend Railway URL as an Authorized Redirect URI in Google Console
-- Add a new Stripe Webhook endpoint pointing to `https://<backend>.up.railway.app/api/v1/payments/webhook`
-
-### Step 6 — Deploy
-Railway auto-deploys on every push to `main`. ✅
+> ⚠️ **Note:** Render free tier sleeps after 15 minutes of inactivity — first request after idle takes ~30 seconds. Fine for a portfolio project.
 
 ---
+
+### Step 1 — PostgreSQL on Neon
+
+1. Sign up at [neon.tech](https://neon.tech) → **New Project**
+2. Create a database named `crimescope`
+3. Copy the connection string → use as `DATABASE_URL` in Render
+   ```
+   postgresql+asyncpg://user:password@ep-xxx.neon.tech/crimescope?sslmode=require
+   ```
+
+---
+
+### Step 2 — Redis on Upstash
+
+1. Sign up at [upstash.com](https://upstash.com) → **Create Database**
+2. Select **Redis**, region closest to you, **Free** tier
+3. Copy the **Redis URL** → use as `REDIS_URL` in Render
+   ```
+   redis://default:password@us1-xxx.upstash.io:6379
+   ```
+
+---
+
+### Step 3 — Backend on Render
+
+1. Sign up at [render.com](https://render.com) → **New → Web Service**
+2. Connect your GitHub repo → Select `crimescope`
+3. Configure:
+   - **Root Directory:** `backend`
+   - **Runtime:** Docker
+   - **Plan:** Free
+4. Add all **Environment Variables** from your `.env`:
+   ```bash
+   ENVIRONMENT=production
+   DEBUG=False
+   SECRET_KEY=<generate>
+   DATABASE_URL=<from Neon>
+   REDIS_URL=<from Upstash>
+   JWT_SECRET_KEY=<generate>
+   GOOGLE_CLIENT_ID=<your value>
+   GOOGLE_CLIENT_SECRET=<your value>
+   GOOGLE_REDIRECT_URI=https://<your-vercel-app>.vercel.app/api/auth/callback/google
+   STRIPE_SECRET_KEY=<your value>
+   STRIPE_WEBHOOK_SECRET=<your value>
+   STRIPE_PRO_MONTHLY_PRICE_ID=<your value>
+   STRIPE_PRO_ANNUAL_PRICE_ID=<your value>
+   RESEND_API_KEY=<your value>
+   EMAIL_FROM=onboarding@resend.dev
+   EMAIL_FROM_NAME=CrimeScope
+   FRONTEND_URL=https://<your-vercel-app>.vercel.app
+   BACKEND_URL=https://<your-render-app>.onrender.com
+   ```
+5. Click **Create Web Service** → Render auto-deploys from Dockerfile
+6. Copy your Render URL: `https://<your-app>.onrender.com`
+
+---
+
+### Step 4 — Frontend on Vercel
+
+1. Sign up at [vercel.com](https://vercel.com) → **Add New Project**
+2. Import your GitHub repo `crimescope`
+3. Configure:
+   - **Root Directory:** `frontend`
+   - **Framework Preset:** Next.js (auto-detected)
+4. Add **Environment Variables**:
+   ```bash
+   NEXT_PUBLIC_API_URL=https://<your-render-app>.onrender.com
+   NEXT_PUBLIC_APP_URL=https://<your-vercel-app>.vercel.app
+   NEXT_PUBLIC_MAPBOX_TOKEN=<your value>
+   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=<your value>
+   NEXTAUTH_URL=https://<your-vercel-app>.vercel.app
+   NEXTAUTH_SECRET=<generate>
+   RESEND_API_KEY=<your value>
+   ```
+5. Click **Deploy** → Vercel builds and deploys automatically
+6. Copy your Vercel URL: `https://<your-app>.vercel.app`
+
+---
+
+### Step 5 — Post-Deploy Updates
+
+After getting your URLs, update:
+
+**Google Cloud Console** — Add Vercel URL to Authorized Redirect URIs:
+```
+https://<your-vercel-app>.vercel.app/api/auth/callback/google
+```
+
+**Stripe Dashboard** — Add production webhook endpoint:
+```
+https://<your-render-app>.onrender.com/api/v1/payments/webhook
+```
+Subscribe to events: `customer.subscription.*`, `invoice.*`, `checkout.session.completed`
+
+**Render** — Update `GOOGLE_REDIRECT_URI` and `FRONTEND_URL` with your actual Vercel URL.
+
+**Vercel** — Update `NEXT_PUBLIC_API_URL` with your actual Render URL.
+
+---
+
+### Auto-Deploy (CI/CD)
+
+Both Vercel and Render auto-deploy on every push to `main` — no manual steps needed after initial setup.
+
+
+---
+
 
 ## 📡 API Reference
 
