@@ -30,19 +30,24 @@ async def client():
 
 @pytest.fixture(scope="function")
 async def verified_user(client: AsyncClient):
-    """Create and verify a test user directly in the DB (bypasses rate limiter and email)."""
+    """Insert a verified test user directly into the DB (bypasses rate limiter and email)."""
     from app.core.security import hash_password as hp
     from app.models.subscription import Subscription, PlanTier, SubscriptionStatus
-    from sqlalchemy import select
+    from sqlalchemy import select, delete
 
     async with AsyncSessionLocal() as db:
-        # Clean up previous test run if any
+        # ── Clean up leftovers from previous run ──────────────────────
+        # IMPORTANT: delete subscription rows FIRST (FK NOT NULL constraint).
+        # Using core delete() not ORM db.delete() to avoid SQLAlchemy
+        # cascading user_id=NULL before the subscription row is removed.
         existing = await db.execute(select(User).where(User.email == TEST_EMAIL))
-        u = existing.scalar_one_or_none()
-        if u:
-            await db.delete(u)
+        old_user = existing.scalar_one_or_none()
+        if old_user:
+            await db.execute(delete(Subscription).where(Subscription.user_id == old_user.id))
+            await db.execute(delete(User).where(User.id == old_user.id))
             await db.commit()
 
+        # ── Insert fresh user ─────────────────────────────────────────
         user = User(
             email=TEST_EMAIL,
             full_name=TEST_NAME,
@@ -51,8 +56,10 @@ async def verified_user(client: AsyncClient):
             is_active=True,
         )
         db.add(user)
-        await db.flush()
+        await db.commit()        # full commit so user.id is in DB before FK reference
+        await db.refresh(user)
 
+        # ── Insert subscription after user is committed ───────────────
         sub = Subscription(
             user_id=user.id,
             plan=PlanTier.FREE,
