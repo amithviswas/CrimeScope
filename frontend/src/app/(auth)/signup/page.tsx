@@ -192,24 +192,34 @@ function SignupForm() {
           )}
         </div>
 
-        <label htmlFor="signup-terms" className="flex items-start gap-3 mb-6 cursor-pointer">
-          <div className="relative mt-0.5">
-            <input id="signup-terms" type="checkbox" checked={terms}
-              onChange={(e) => setTerms(e.target.checked)} className="sr-only" aria-label="Accept terms" />
-            <div onClick={() => setTerms((v) => !v)}
-              className="w-4 h-4 rounded flex items-center justify-center transition-colors"
-              style={{ background: terms ? "var(--color-accent-primary)" : "var(--color-bg-tertiary)",
-                border: `1px solid ${terms ? "var(--color-accent-primary)" : "var(--color-border)"}`, cursor: "pointer" }}>
-              {terms && <Check className="h-3 w-3" style={{ color: "#0a0e1a" }} />}
-            </div>
-          </div>
-          <span style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem", lineHeight: 1.5 }}>
+        {/* Single controlled checkbox — no label+onClick double-toggle */}
+        <div className="flex items-start gap-3 mb-6">
+          <button
+            type="button"
+            id="signup-terms"
+            role="checkbox"
+            aria-checked={terms}
+            onClick={() => setTerms((v) => !v)}
+            className="flex-shrink-0 mt-0.5 w-4 h-4 rounded flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-400"
+            style={{
+              background: terms ? "var(--color-accent-primary)" : "var(--color-bg-tertiary)",
+              border: `1px solid ${terms ? "var(--color-accent-primary)" : "var(--color-border)"}`,
+              cursor: "pointer",
+            }}
+            aria-label="Accept terms of service and privacy policy"
+          >
+            {terms && <Check className="h-3 w-3" style={{ color: "#0a0e1a" }} />}
+          </button>
+          <span
+            style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem", lineHeight: 1.5, cursor: "pointer" }}
+            onClick={() => setTerms((v) => !v)}
+          >
             I agree to the{" "}
-            <Link href="/terms"   style={{ color: "var(--color-accent-primary)" }}>Terms of Service</Link>
+            <Link href="/terms" onClick={(e) => e.stopPropagation()} style={{ color: "var(--color-accent-primary)" }}>Terms of Service</Link>
             {" "}and{" "}
-            <Link href="/privacy" style={{ color: "var(--color-accent-primary)" }}>Privacy Policy</Link>
+            <Link href="/privacy" onClick={(e) => e.stopPropagation()} style={{ color: "var(--color-accent-primary)" }}>Privacy Policy</Link>
           </span>
-        </label>
+        </div>
 
         <motion.button type="submit" id="signup-submit-btn"
           className="btn btn-primary w-full justify-center"
