@@ -262,11 +262,12 @@ async def crime_heatmap(
     start_date: str | None = Query(default=None),
     end_date: str | None = Query(default=None),
     category: str | None = Query(default=None),
+    categories: str | None = Query(default=None, description="Comma-separated list of categories"),
     limit: int = Query(default=5000, le=10000),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> dict:
-    """GeoJSON FeatureCollection for Mapbox heatmap/cluster layers."""
+    """GeoJSON FeatureCollection for heatmap/cluster layers."""
     filters = [
         CrimeIncident.city == city.lower(),
         CrimeIncident.latitude.isnot(None),
@@ -276,8 +277,14 @@ async def crime_heatmap(
         filters.append(CrimeIncident.occurred_at >= f"{start_date} 00:00:00")
     if end_date:
         filters.append(CrimeIncident.occurred_at <= f"{end_date} 23:59:59")
-    if category:
-        filters.append(CrimeIncident.category == category.upper())
+    # Support both single ?category= and multi ?categories=A,B,C
+    cat_filter = categories or category
+    if cat_filter:
+        cat_list = [c.strip().upper() for c in cat_filter.split(",") if c.strip()]
+        if len(cat_list) == 1:
+            filters.append(CrimeIncident.category == cat_list[0])
+        elif len(cat_list) > 1:
+            filters.append(CrimeIncident.category.in_(cat_list))
 
     result = await db.execute(
         select(

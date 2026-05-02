@@ -93,45 +93,54 @@ def map_row(row: dict) -> dict | None:
             source_api="chicago_open_data",
         )
     except Exception as e:
-        print(f"  ⚠ Skipped row: {e}")
+        print(f"  [SKIP] Skipped row: {e}")
         return None
 
 
 async def seed(total_limit: int) -> None:
-    engine = create_async_engine(DATABASE_URL, echo=False)
+    # asyncpg doesn't accept sslmode as a URL query param — strip it and
+    # pass ssl=True via connect_args instead.
+    db_url = DATABASE_URL
+    connect_args: dict = {}
+    if "sslmode=require" in db_url:
+        db_url = db_url.replace("?sslmode=require", "").replace("&sslmode=require", "")
+        connect_args["ssl"] = True
+
+    engine = create_async_engine(db_url, echo=False, connect_args=connect_args)
     Session = async_sessionmaker(engine, expire_on_commit=False)
 
     PAGE = 500
     inserted = 0
     offset   = 0
 
-    print(f"🌐 Fetching up to {total_limit:,} Chicago crime incidents…")
+    print(f"[INFO] Fetching up to {total_limit:,} Chicago crime incidents...")
 
     async with httpx.AsyncClient() as client:
         while inserted < total_limit:
             page_limit = min(PAGE, total_limit - inserted)
-            print(f"  Fetching {page_limit} rows at offset {offset}…", end=" ", flush=True)
+            print(f"  Fetching {page_limit} rows at offset {offset}...", end=" ", flush=True)
             rows = await fetch_page(client, page_limit, offset)
             if not rows:
                 print("done (no more data).")
                 break
 
             records = [r for row in rows if (r := map_row(row))]
-            print(f"→ {len(records)} valid records", end=" ", flush=True)
+            print(f"-> {len(records)} valid records", end=" ", flush=True)
 
             if records:
                 async with Session() as db:
                     for rec in records:
                         db.add(CrimeIncident(**rec))
                     await db.commit()
-                print(f"✓ committed.")
+                print("committed OK.")
+
             else:
                 print()
 
             inserted += len(records)
             offset   += page_limit
 
-    print(f"\n✅ Seeded {inserted:,} incidents from Chicago Open Data.")
+    print(f"\n[DONE] Seeded {inserted:,} incidents from Chicago Open Data.")
     await engine.dispose()
 
 
