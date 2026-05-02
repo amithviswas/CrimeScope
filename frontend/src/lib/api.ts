@@ -8,8 +8,8 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export const api = axios.create({
   baseURL: `${BASE_URL}/api/v1`,
-  withCredentials: true,       // send httpOnly cookies
-  timeout: 15_000,
+  withCredentials: true,       // send httpOnly cookies (same-domain) or CORS credentialed
+  timeout: 60_000,             // 60s — Render free tier can take ~50s to cold-start
   headers: { "Content-Type": "application/json" },
 });
 

@@ -9,6 +9,7 @@ from httpx import AsyncClient
 from app.core.security import create_access_token
 from app.models.user import User, UserPlan
 from app.core.database import AsyncSessionLocal
+from app.core.security import hash_password
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -21,22 +22,43 @@ TEST_NAME     = "Test User"
 @pytest.fixture(scope="function")
 async def client():
     from app.main import app
+    # Disable rate limiter for testing
+    app.dependency_overrides = {}
     async with AsyncClient(app=app, base_url="http://test") as c:
         yield c
 
 
 @pytest.fixture(scope="function")
 async def verified_user(client: AsyncClient):
-    """Create and verify a test user, return the User ORM object."""
-    await client.post("/api/v1/auth/register", json={
-        "email": TEST_EMAIL, "password": TEST_PASSWORD, "full_name": TEST_NAME,
-    })
+    """Create and verify a test user directly in the DB (bypasses rate limiter and email)."""
+    from app.core.security import hash_password as hp
+    from app.models.subscription import Subscription, PlanTier, SubscriptionStatus
+    from sqlalchemy import select
+
     async with AsyncSessionLocal() as db:
-        from sqlalchemy import select
-        result = await db.execute(select(User).where(User.email == TEST_EMAIL))
-        user = result.scalar_one_or_none()
-        assert user, "User not created"
-        user.is_verified = True
+        # Clean up previous test run if any
+        existing = await db.execute(select(User).where(User.email == TEST_EMAIL))
+        u = existing.scalar_one_or_none()
+        if u:
+            await db.delete(u)
+            await db.commit()
+
+        user = User(
+            email=TEST_EMAIL,
+            full_name=TEST_NAME,
+            hashed_password=hp(TEST_PASSWORD),
+            is_verified=True,
+            is_active=True,
+        )
+        db.add(user)
+        await db.flush()
+
+        sub = Subscription(
+            user_id=user.id,
+            plan=PlanTier.FREE,
+            status=SubscriptionStatus.ACTIVE,
+        )
+        db.add(sub)
         await db.commit()
         await db.refresh(user)
         return user

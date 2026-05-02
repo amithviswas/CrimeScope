@@ -84,22 +84,7 @@ async def list_crimes(
     )
 
 
-# ── GET /crimes/{id} ──────────────────────────────────────────────────────────
 
-@router.get("/{incident_id}", response_model=CrimeIncidentRead)
-async def get_crime(
-    incident_id: str,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
-    """Get a single crime incident by ID."""
-    result = await db.execute(
-        select(CrimeIncident).where(CrimeIncident.id == incident_id)
-    )
-    incident = result.scalar_one_or_none()
-    if not incident:
-        raise HTTPException(status_code=404, detail="Incident not found")
-    return CrimeIncidentRead.model_validate(incident)
 
 
 # ── GET /crimes/stats/summary ─────────────────────────────────────────────────
@@ -364,7 +349,6 @@ async def export_crimes(
             headers={"Content-Disposition": f"attachment; filename=crimescope_{city}_export.json"},
         )
 
-    # CSV
     output = io.StringIO()
     fieldnames = ["id", "city", "category", "subcategory", "latitude", "longitude",
                   "district", "neighborhood", "occurred_at", "resolved", "source_api"]
@@ -390,3 +374,26 @@ async def export_crimes(
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename=crimescope_{city}_export.csv"},
     )
+
+
+# ── GET /crimes/{id} — MUST be LAST so /heatmap /stats/* /export match first ──
+
+@router.get("/{incident_id}", response_model=CrimeIncidentRead)
+async def get_crime(
+    incident_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Get a single crime incident by UUID. Named sub-paths take priority over this wildcard."""
+    import uuid as _uuid
+    try:
+        uid = _uuid.UUID(incident_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Incident not found")
+    result = await db.execute(
+        select(CrimeIncident).where(CrimeIncident.id == uid)
+    )
+    incident = result.scalar_one_or_none()
+    if not incident:
+        raise HTTPException(status_code=404, detail="Incident not found")
+    return CrimeIncidentRead.model_validate(incident)

@@ -355,8 +355,14 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
     access_token  = create_access_token({"sub": str(user.id), "email": user.email, "plan": user.plan.value})
     refresh_token = create_refresh_token({"sub": str(user.id)})
 
-    response = RedirectResponse(url=f"{settings.frontend_url}/dashboard")
-    response.set_cookie("access_token",  access_token,  max_age=3600,          **COOKIE_OPTS)
-    response.set_cookie("refresh_token", refresh_token, max_age=60*60*24*30,
-                        path="/api/v1/auth/refresh", **COOKIE_OPTS)
-    return response
+    # ── Cross-domain OAuth fix ────────────────────────────────────────────────
+    # Backend (onrender.com) and frontend (vercel.app) are on different domains.
+    # Cookies set here would be scoped to onrender.com and invisible to vercel.app.
+    # Solution: pass tokens as URL params → frontend /auth/callback reads & stores them.
+    from urllib.parse import urlencode
+    params = urlencode({
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "expires_in": 3600,
+    })
+    return RedirectResponse(url=f"{settings.frontend_url}/auth/callback?{params}")
