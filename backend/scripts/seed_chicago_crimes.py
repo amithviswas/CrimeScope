@@ -183,16 +183,17 @@ def map_row(row: dict, city_key: str) -> dict | None:
 
 async def fetch_page(client: httpx.AsyncClient, url_tmpl: str, limit: int, offset: int) -> list[dict]:
     url  = url_tmpl.format(limit=limit, offset=offset)
-    resp = await client.get(url, timeout=30.0)
+    resp = await client.get(url, timeout=60.0)
     resp.raise_for_status()
     return resp.json()
 
 
 async def seed_city(city_key: str, total_limit: int, engine, Session) -> int:
     cfg    = CITIES[city_key]
-    PAGE   = 500
+    # Chicago Socrata is fast; NYC/LA need smaller pages to avoid timeouts
+    PAGE   = 500 if city_key == "chicago" else 200
     offset = inserted = 0
-    print(f"\n[{cfg['label']}] Fetching up to {total_limit:,} incidents...")
+    print(f"\n[{cfg['label']}] Fetching up to {total_limit:,} incidents (page={PAGE})...")
 
     async with httpx.AsyncClient() as client:
         while inserted < total_limit:
