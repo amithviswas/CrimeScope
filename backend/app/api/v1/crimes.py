@@ -13,7 +13,7 @@ import csv
 import io
 
 from app.core.database import get_db
-from app.core.security import require_plan, get_current_user
+from app.core.security import require_plan, get_current_user, get_current_user_optional
 from app.models.crime import CrimeIncident
 from app.models.user import User, UserPlan
 from app.schemas.crime import CrimeIncidentRead, CrimeSummaryStats
@@ -263,13 +263,18 @@ async def crime_heatmap(
     end_date: str | None = Query(default=None),
     category: str | None = Query(default=None),
     categories: str | None = Query(default=None, description="Comma-separated list of categories"),
-    limit: int = Query(default=5000, le=10000),
+    limit: int = Query(default=2000, le=10000),
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user=Depends(get_current_user_optional),   # public endpoint — no auth required
 ) -> dict:
-    """GeoJSON FeatureCollection for heatmap/cluster layers."""
+    """GeoJSON FeatureCollection for heatmap/cluster layers.
+    Unauthenticated users get up to 2 000 points; authenticated up to 5 000.
+    """
+    # Authenticated users get a higher cap
+    effective_limit = min(limit, 5000 if user else 2000)
+
     filters = [
-        CrimeIncident.city == city.lower(),
+        CrimeIncident.city == city.lower().replace(" ", "_"),
         CrimeIncident.latitude.isnot(None),
         CrimeIncident.longitude.isnot(None),
     ]
@@ -288,7 +293,6 @@ async def crime_heatmap(
 
     result = await db.execute(
         select(
-            CrimeIncident.id,
             CrimeIncident.latitude,
             CrimeIncident.longitude,
             CrimeIncident.category,
@@ -297,7 +301,7 @@ async def crime_heatmap(
         )
         .where(and_(*filters))
         .order_by(CrimeIncident.occurred_at.desc())
-        .limit(limit)
+        .limit(effective_limit)
     )
     rows = result.fetchall()
 
@@ -309,7 +313,6 @@ async def crime_heatmap(
                 "coordinates": [float(r.longitude), float(r.latitude)],
             },
             "properties": {
-                "id": str(r.id),
                 "category": r.category,
                 "district": r.district,
                 "occurred_at": r.occurred_at.isoformat() if r.occurred_at else None,
@@ -319,6 +322,7 @@ async def crime_heatmap(
     ]
 
     return {"type": "FeatureCollection", "features": features, "total": len(features)}
+
 
 
 # ── GET /crimes/export (Pro+) ─────────────────────────────────────────────────
