@@ -43,7 +43,14 @@ export default function LeafletMap({ city, categories, dateRange }: MapComponent
 
     const initMap = async () => {
       const L = (await import("leaflet")).default;
-      await import("leaflet/dist/leaflet.css");
+      // Load Leaflet CSS via a link element (avoids TS error from CSS module import)
+      if (!document.getElementById("leaflet-css")) {
+        const link = document.createElement("link");
+        link.id   = "leaflet-css";
+        link.rel  = "stylesheet";
+        link.href = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";
+        document.head.appendChild(link);
+      }
 
       // Fix default marker icon path in Next.js
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
