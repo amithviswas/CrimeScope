@@ -57,10 +57,9 @@ CITIES: dict[str, dict] = {
     },
     "new_york": {
         "url": (
-            "https://data.cityofnewyork.us/resource/qgea-i56i.json"
+            "https://data.cityofnewyork.us/resource/5uac-w243.json"
             "?$limit={limit}&$offset={offset}"
-            "&$where=latitude IS NOT NULL AND longitude IS NOT NULL"
-            "&$order=cmplnt_fr_dt DESC"
+            "&$order=cmplnt_num DESC"
         ),
         "label": "New York",
         "field_map": {
@@ -79,15 +78,14 @@ CITIES: dict[str, dict] = {
         "url": (
             "https://data.lacity.org/resource/2nrs-mtv8.json"
             "?$limit={limit}&$offset={offset}"
-            "&$where=lat IS NOT NULL AND lon IS NOT NULL"
-            "&$order=date_occ DESC"
+            "&$order=dr_no DESC"
         ),
         "label": "Los Angeles",
         "field_map": {
             "latitude":  "lat",
             "longitude": "lon",
             "type":      "crm_cd_desc",
-            "desc":      "mocodes",
+            "desc":      "premis_desc",
             "date":      "date_occ",
             "district":  "area_name",
             "area":      "rpt_dist_no",
