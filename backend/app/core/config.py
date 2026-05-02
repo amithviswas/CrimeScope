@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     environment: Literal["development", "staging", "production"] = "development"
     debug: bool = True
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8000"]
+    # Extra CORS origins added via env (comma-separated)
+    extra_cors_origins: str = ""
     backend_url: str = "http://localhost:8000"
     frontend_url: str = "http://localhost:3000"
 
@@ -103,3 +105,20 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
+
+
+def get_cors_origins() -> list[str]:
+    """Build full CORS origins list combining default + FRONTEND_URL + extra."""
+    origins = set(settings.cors_origins)
+    # Always add the configured frontend URL
+    if settings.frontend_url:
+        origins.add(settings.frontend_url)
+    if settings.backend_url:
+        origins.add(settings.backend_url)
+    # Any extra origins (comma-separated env var)
+    if settings.extra_cors_origins:
+        for o in settings.extra_cors_origins.split(","):
+            o = o.strip()
+            if o:
+                origins.add(o)
+    return list(origins)

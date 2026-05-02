@@ -42,7 +42,9 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 # ── Cookie helpers ────────────────────────────────────────────────────────────
 
-COOKIE_OPTS = dict(httponly=True, samesite="lax", secure=False)  # secure=True in production
+# Use secure cookies in production (HTTPS required)
+_SECURE = settings.environment == "production"
+COOKIE_OPTS = dict(httponly=True, samesite="lax", secure=_SECURE)
 
 
 def _set_auth_cookies(response: Response, access_token: str, refresh_token: str):
@@ -284,12 +286,12 @@ async def google_login(request: Request):
             detail="Google OAuth is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET."
         )
     oauth = _get_oauth_client()
-    # GOOGLE_REDIRECT_URI env overrides the default.
-    # Register whichever URI you use here in Google Cloud Console.
-    # Default: http://localhost:3000/api/auth/callback/google (Next.js proxy route)
+    # Google must redirect to the BACKEND callback endpoint.
+    # This URI must be registered in Google Cloud Console Authorized Redirect URIs.
+    # Set GOOGLE_REDIRECT_URI in env to override (default: backend /auth/google/callback)
     redirect_uri = (
         settings.google_redirect_uri
-        or f"{settings.frontend_url}/api/auth/callback/google"
+        or f"{settings.backend_url}/api/v1/auth/google/callback"
     )
     return await oauth.google.authorize_redirect(request, redirect_uri)
 

@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 
 from app.api.v1 import admin, analytics, auth, crimes, ml, payments, users
-from app.core.config import settings
+from app.core.config import settings, get_cors_origins
 from app.core.rate_limiter import limiter, rate_limit_exceeded_handler
 
 
@@ -80,7 +80,7 @@ app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=get_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -89,7 +89,9 @@ app.add_middleware(
 # SessionMiddleware: required by Authlib for storing OAuth state/nonce between
 # the /auth/google redirect and the /auth/google/callback endpoint.
 from starlette.middleware.sessions import SessionMiddleware  # noqa: E402
-app.add_middleware(SessionMiddleware, secret_key=settings.secret_key, same_site="lax", https_only=False)
+_https_only = settings.environment == "production"
+app.add_middleware(SessionMiddleware, secret_key=settings.secret_key, same_site="lax", https_only=_https_only)
+
 
 # ── Routers ────────────────────────────────────────────────────────────────────
 
