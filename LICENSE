@@ -1,0 +1,63 @@
+CRIMESCOPE COMMERCIAL PROPRIETARY LICENSE
+
+Copyright (c) 2024-2026 Amith Viswas (amithviswas0909@gmail.com)
+All Rights Reserved.
+
+================================================================================
+PROPRIETARY SOFTWARE — ALL RIGHTS RESERVED
+================================================================================
+
+This software, including all source code, documentation, machine learning models,
+facial recognition pipeline, database schemas, API designs, UI components, and
+associated materials (collectively, the "Software"), is the exclusive proprietary
+property of Amith Viswas ("Author").
+
+RESTRICTIONS
+------------
+You may NOT, without prior explicit written permission from the Author:
+
+1. Use, copy, modify, merge, publish, distribute, sublicense, or sell copies
+   of the Software or any portion thereof.
+
+2. Reverse engineer, decompile, disassemble, or attempt to derive the source
+   code of any compiled or obfuscated portions of the Software.
+
+3. Remove or alter any proprietary notices, labels, or marks on the Software.
+
+4. Deploy or host the Software or any derivative works for commercial or
+   non-commercial purposes.
+
+5. Use the Software's name, logo, or branding in any manner.
+
+PERMITTED USE
+-------------
+Viewing this repository on GitHub for evaluation purposes only is permitted.
+No other use is permitted without a written license agreement.
+
+ACQUISITION
+-----------
+To obtain a license to use, deploy, modify, or purchase this Software,
+contact the Author:
+
+  Email: amithviswas0909@gmail.com
+
+Commercial licenses are available at a reasonable price and include:
+  - Full source code rights
+  - ML model weights and facial recognition pipeline
+  - Database schema and seeding scripts (50+ cities)
+  - Deployment documentation and setup guides
+  - One-time transfer of all associated intellectual property
+
+DISCLAIMER
+----------
+THE SOFTWARE IS PROVIDED "AS IS" FOR EVALUATION PURPOSES ONLY.
+THE AUTHOR MAKES NO WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR
+NON-INFRINGEMENT.
+
+IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+LIABILITY ARISING FROM OR IN CONNECTION WITH THE SOFTWARE OR ITS USE.
+
+================================================================================
+For licensing inquiries: amithviswas0909@gmail.com
+================================================================================
